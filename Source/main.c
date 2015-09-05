@@ -11,7 +11,7 @@
 // Project files
 #include "stm32l053xx.h"
 
-static unsigned long long systick_counter = 0;
+static unsigned long long prvSystick = 0;
 
 void vAssertCalled( unsigned long ulLine, const char * const pcFileName )
 {
@@ -58,7 +58,7 @@ void vApplicationTickHook( void )
     task that then toggles an LED.  Additionally, the call to
     vQueueSetAccessQueueSetFromISR() is part of the "standard demo tasks"
     functionality. */
-    systick_counter++;
+    prvSystick++;
 }
 
 void vApplicationIdleHook( void )
@@ -74,7 +74,7 @@ void vApplicationIdleHook( void )
     memory allocated by the kernel to any task that has since been deleted. */
 }
 
-static xQueueHandle xQueue = 0;
+static xQueueHandle prvQueue = 0;
 static int prvProducerCounter = 0;
 static int prvConsumerCounter = 0;
 
@@ -83,7 +83,7 @@ static void prvProducer( void *pvParameters )
     for( ;; )
     {
         prvProducerCounter++;
-        xQueueSendToBack( xQueue, &prvProducerCounter, ( TickType_t )0 );
+        xQueueSendToBack( prvQueue, &prvProducerCounter, ( TickType_t )0 );
     }
 }
 
@@ -91,7 +91,7 @@ static void prvConsumer( void *pvParameters )
 {
     for( ;; )
     {
-        xQueueReceive( xQueue, &prvConsumerCounter, ( TickType_t )0 );
+        xQueueReceive( prvQueue, &prvConsumerCounter, ( TickType_t )0 );
     }
 }
 
@@ -102,7 +102,7 @@ static void prvConsumer( void *pvParameters )
  *
  * @retval None
  */
-int main(void)
+int main( void )
 {
     BaseType_t xStatus;
     
@@ -111,19 +111,19 @@ int main(void)
     
     // Start producer thread.
     xStatus = xTaskCreate( prvProducer, "Producer", configMINIMAL_STACK_SIZE, NULL, 1, NULL );
-    configASSERT(pdPASS == xStatus);
+    configASSERT( pdPASS == xStatus );
 
     // Start consumer thread.
     xStatus = xTaskCreate( prvConsumer, "Consumer", configMINIMAL_STACK_SIZE, NULL, 1, NULL );
-    configASSERT(pdPASS == xStatus);
+    configASSERT( pdPASS == xStatus );
     
     // Create communication queue.
-    xQueue = xQueueCreate(100, sizeof(int));
-    configASSERT(0 != xQueue);
+    prvQueue = xQueueCreate( 100, sizeof( int ) );
+    configASSERT( 0 != prvQueue );
     
     // Start the tasks and timer running.
     vTaskStartScheduler();
     
     // Main loop.
-    while(1);
+    while ( 1 );
 }
